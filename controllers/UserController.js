@@ -2,7 +2,7 @@ const mongoose = require('mongoose'),
     jwt = require('jsonwebtoken'),
     bcrypt = require('bcrypt-nodejs'),
     User = require("../models/User"),
-    config = require("../config/config");
+    config = require("../configs/config");
 
 function generateToken(user) {
     return jwt.sign(user, config.SECRET_KEY, {
@@ -19,11 +19,11 @@ function setUserInfo(request) {
 };
 
 exports.register = function (req, res) {
-    const user = req.body.user;
+    const email = req.body.user;
     const password = req.body.password;
 
     // Return error if no user provided
-    if (!user) {
+    if (!email) {
         return res.status(422).send({ error: 'You must enter an email address.' });
     }
 
@@ -32,7 +32,7 @@ exports.register = function (req, res) {
         return res.status(422).send({ error: 'You must enter a password.' });
     }
 
-    User.findOne({ user: user }, function (err, existingUser) {
+    User.findOne({ email: email }, function (err, existingUser) {
         if (err) {
             res.send(400).json({ "error": err });
         }
@@ -49,10 +49,10 @@ exports.register = function (req, res) {
 
         newUser.save(function (err, user) {
             if (err) {
-                res.send(400).json({ "error": err });
+                return res.send(400).json({ "error": err });
             }
             let userInfo = setUserInfo(user);
-            res.status(201).json({
+            return res.status(201).json({
                 token: "JWT " + generateToken(userInfo),
                 user: userInfo
             });
@@ -62,11 +62,11 @@ exports.register = function (req, res) {
 
 exports.login = function (req, res) {
     User.findOne({
-        user: req.body.user
+        email: req.body.email
     }, function (err, user) {
         if (err) throw err;
         if (!user) {
-            res.status(401).json({ message: 'Authentication failed. User not found.' });
+            return res.status(401).json({ message: 'Authentication failed. User not found.' });
         } else if (user) {
             user.comparePassword(req.body.password, (err, isMatch) => {
                 if (!isMatch) {
